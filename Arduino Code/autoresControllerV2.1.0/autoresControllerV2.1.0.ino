@@ -15,6 +15,7 @@
 // add way for the machnine to detect that it is stuck and shuts off
 
 #include <AccelStepper.h>// includes accelstepper library
+#include <Q2HX711.h> // includes library to interface with pressure sensor
 //Avoid 23-53 pins on arduino mega
 char prot;//character for protoype choice equal to proto but allows the proto value to remain constant throughout code
 char proto;//chracter for prototype
@@ -24,6 +25,9 @@ char action;
 char act3 = '0';
 char act4 = '0';
 char action3;
+
+const byte MPS_OUT_pin = 8; // OUT data pin for the pressure sensor
+const byte MPS_SCK_pin = 9; // clock data pin for the pressure sensor
 
 
 int val;// value for switch case
@@ -106,6 +110,8 @@ AccelStepper stepper(1, 2, 3); // pin 2 is connected to PUL- on stepping driver 
 //Stepping driver controls the Forwards and backwards stepper motor.  (Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5)
 AccelStepper rotstepper(2, 5, 6); // pin 5 is connected to PUL- on stepping driver and pin 6 is connected to DIR-. [Tan]
 // the positive rotational direction is the forwards direction with the angular velocity vector facing away from the pneumotach .
+Q2HX711 pressure_sensor(MPS_OUT_pin, MPS_SCK_pin);
+
 
 void setup()
 { //for physical setup just make sure to position the rotstepper at position 1 before starting the power
@@ -840,7 +846,7 @@ void ShutDown () {//add command to shut off all valves and other electrical comp
 bool checkValveFlow(){
   //This function checks if the valve is allowing air to flow
   current_time = millis();
-  while (pressure_sensor.read().toFloat() <= 0){ //Change 0 to adjusted calibrated threshold
+  while (pressure_sensor.read() <= 0){ //Change 0 to adjusted calibrated threshold
     update_time = millis();
     if (update_time - current_time >= 1000*5){ //Adjust timeout duration
       return false;

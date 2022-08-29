@@ -6,7 +6,7 @@
 // [2022-0131-Brandon] Slow down the rotational motor and adjust position 3 a few steps
 // [2022-0418-Brandon] Changed valve pins for new PCB
 
-//Note: To abort while running a function, write "X" into the Serial monitor.
+//Note: To abort while running a function, write 'X' into the Serial monitor.
 
 // Debugging notes
 ///add guard safe to make sure it does not move back if it is already touching the end stop
@@ -28,6 +28,8 @@ char action3;
 
 const byte MPS_OUT_pin = 8; // OUT data pin for the pressure sensor
 const byte MPS_SCK_pin = 9; // clock data pin for the pressure sensor
+
+const byte KILL_BTN_pin = 2; // 
 
 
 int val;// value for switch case
@@ -141,12 +143,9 @@ void setup()
   stepper.disableOutputs();//turns off the forwards and backwards stepper at start up so motor does not over heat because it if off as a default and is only turned off to move
   rotstepper.disableOutputs();
   digitalWrite(led, HIGH);
-  if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+
+  attachInterrupt(digitalPinToInterrupt(KILL_BTN_pin),ABORT,CHANGE); // On kill button press, run the ABORT command
+  
 }
 
 //This section just includes a series of functions that move the stepper motors in specific ways
@@ -163,19 +162,9 @@ void stepperForward2() { /// add guard safe to make sure it does not move back i
     stepper.moveTo(pos);
     while (stepper.currentPosition() != pos) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
       stepper.run();
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
     }
-    if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+    
     pos--; // moves linear motor in increments until the endstop is pressed.
     update_time = millis();
     if (update_time - current_time >= 5*1000){ // if 5 second timeout is triggered, display error
@@ -213,19 +202,9 @@ if (digitalRead(Fendstop)==HIGH && digitalRead(Bendstop)==HIGH){posB=0;}
     stepper.moveTo(posB);
     while (stepper.currentPosition() != posB) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
       stepper.run();
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
     }
-    if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+    
     posB++; // moves the linear motor in increments until endstop is pressed
     update_time = millis();
     if (update_time - current_time >= 5*1000){
@@ -262,19 +241,9 @@ void rotstepperPosition1() {
       rotstepper.moveTo(pos0);//A full revolution is 1600
       while (rotstepper.currentPosition() != pos0) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       pos0++;// moves the rotstepper in increments until the endstop is pressed
       update_time = millis();
       if (update_time - current_time >= 1000*20){
@@ -296,19 +265,9 @@ void rotstepperPosition1() {
       rotstepper.moveTo (pos1);
       while (rotstepper.currentPosition() != pos1) {
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       rotstepper.stop();
       rotflag = false; // try this
       stopflag = false;
@@ -325,19 +284,9 @@ void rotstepperPosition2() {
       rotstepper.moveTo(pos0);//A full revolution is 1600
       while (rotstepper.currentPosition() != pos0) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       pos0++;// moves the rotstepper in increments until the endstop is pressed
       update_time = millis();
       if (update_time - current_time >= 1000*20){
@@ -359,19 +308,9 @@ void rotstepperPosition2() {
       rotstepper.moveTo (pos2);
       while (rotstepper.currentPosition() != pos2) {
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       rotstepper.stop();
       rotflag = false; // try this
       stopflag = false;
@@ -389,19 +328,9 @@ void rotstepperPosition3()
       rotstepper.moveTo(pos0);
       while (rotstepper.currentPosition() != pos0) {
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       pos0++;// moves the rotstepper in increments until the endstop is pressed
       update_time = millis();
       if (update_time - current_time >= 1000*20){
@@ -423,19 +352,9 @@ void rotstepperPosition3()
       rotstepper.moveTo(pos3);
       while (rotstepper.currentPosition() != pos3) {
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       rotstepper.stop();
       rotflag = false; // try this
       stopflag = false;
@@ -453,25 +372,10 @@ void rotstepperPosition4()
       rotstepper.moveTo(pos0);//A full revolution is 1600
       while (rotstepper.currentPosition() != pos0) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
+        
       pos0++;// moves the rotstepper in increments until the endstop is pressed
       update_time = millis();
       if (update_time - current_time >= 1000*20){
@@ -493,19 +397,9 @@ void rotstepperPosition4()
       rotstepper.moveTo (pos4);
       while (rotstepper.currentPosition() != pos4) {
         rotstepper.run();
-        if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+        
       }
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       rotstepper.stop();
       rotflag = false; // try this, make them into booleans
       stopflag = false;
@@ -531,12 +425,7 @@ void blinking() {
     }
     digitalWrite(led, state);
     while (millis() - prevt <= 1000) {
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
     };
     prev = mil;
   }
@@ -564,12 +453,7 @@ void Calibrate(long Cals) {
     mmil = millis();
     mprev = mmil;
     while (millis() - mprev <= Sec) {
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
     };// wait for given seconds
     digitalWrite(mot, LOW);
     Serial.println("Finished: Calibrating");
@@ -587,12 +471,7 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   int valves[] = {Gas1, Gas2, Gas3, Gas4}; // sets up matrix with Gas pins, note the values are intergers
   //Turn off valve
   if (OpInt == 0 && ValveInt < 5 && ValveInt > 0) {
-    if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+    
     digitalWrite(valves[ValveInt - 1], LOW); // for ie. if Op=1, this lines turns off the pin number in
     //position 0 of the valves matrix which is Gas1 (Gas1 is an interger and stores the pin numbers)
     String valve_off = " Off";
@@ -600,24 +479,14 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   }
   //Turn on valve
   if (OpInt == -1 && ValveInt < 5 && ValveInt > 0) {
-    if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+    
     digitalWrite(valves[ValveInt - 1], HIGH);
     String valve_on = " On";
     Serial.println(current_label + identify_valve + valve_on);
   }
   //Turn off all valves
   if (ValveInt == 0 && OpInt == 0) {
-    if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+    
     digitalWrite (Gas1, LOW);
     digitalWrite (Gas2, LOW);
     digitalWrite (Gas3, LOW);
@@ -627,12 +496,7 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   //Turn on valve for specified time
   else {
     if (ValveInt < 5 && ValveInt > 0 && OpInt != -1 && OpInt != 0) {
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       String valve_start = "Starting: Valve ";
       String specify_time = " on for ";
       Serial.println(valve_start + identify_valve + specify_time + total_time + time_unit);
@@ -658,12 +522,7 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   SecPosi = 1000 * GasInt;
   //Go to posi and do not turn on the valve
   if (GasInt == 0 && PosiInt < 5 && PosiInt > 0) {
-    if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+    
     String gas_off = ", Gas Off";
     Serial.println(position_label + identify_position + gas_off);
     digitalWrite(valves[PosiInt - 1], LOW); // turn off valve
@@ -682,12 +541,7 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   }
   // Go to Position and Turn on the Valve
   if (GasInt == -1 && PosiInt < 5 && PosiInt > 0) {
-    if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+    
     digitalWrite(valves[PosiInt - 1], HIGH); // turn on valve
     String gas_on = ", Gas On";
     Serial.println(position_label + identify_position + gas_on);
@@ -707,12 +561,7 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   // Turn on gas for specified time first, then go to position and keep gas on
   else {
     if (PosiInt < 5 && PosiInt > 0 && GasInt != 0 && GasInt != -1) {
-      if (Serial.available()){
-          if (Serial.read() == "X"){
-            ABORT();
-            return;
-          }
-        }
+      
       String prefill_length = ", Prefilled for ";
       Serial.println(position_label + identify_position + prefill_length + prefill_time + time_unit);
       digitalWrite(valves[PosiInt - 1], HIGH);
@@ -846,7 +695,8 @@ void ShutDown () {//add command to shut off all valves and other electrical comp
 bool checkValveFlow(){
   //This function checks if the valve is allowing air to flow
   current_time = millis();
-  while (pressure_sensor.read() <= 0){ //Change 0 to adjusted calibrated threshold
+  float measurement = (float) pressure_sensor.read();
+  while (measurement <= 0){ //Change 0 to adjusted calibrated threshold
     update_time = millis();
     if (update_time - current_time >= 1000*5){ //Adjust timeout duration
       return false;
@@ -873,7 +723,7 @@ void ABORT() {
 
 
 // This section contains all the functions for reading the serial port to call the functions above
-//note all inputs must be preceeded by '<' and ended by '>', see input guide.
+// note all inputs must be preceeded by '<' and ended by '>', see input guide.
 // Function to read data send from the serial port and store it in receivedChars
 void recvdata () {
   static boolean recvInProgress = false; // the static part allows this boolean to keep its value between functions

@@ -3,8 +3,7 @@
 // To add new function, Add the function letter the to Commands array and increase Comsize by the number of new functions
 
 // [2021-0415-Tan] Re-assign the I/O pins and add VA2, VA3, VA4
-// [2022-0131-Brandon] Slow down the rotational motor and adjust position 3 a few steps
-// [2022-0418-Brandon] Changed valve pins for new PCB
+// [2022-0131-Brandon] Slow down the rotational motor and adjust position 3 a few steps 
 
 // Debugging notes
 ///add guard safe to make sure it does not move back if it is already touching the end stop
@@ -24,12 +23,11 @@ char act4 = '0';
 char action3;
 
 
-
 int val;// value for switch case
 const int Gas1 = 32; // pin for Gas 1 [Tan]
-const int Gas2 = 38; // pin for Gas 2 [Tan]
-const int Gas3 = 44; // pin for Gas 3 [Tan]
-const int Gas4 = 50; // pin for Gas 4 [Tan]
+const int Gas2 = 36; // pin for Gas 2 [Tan]
+const int Gas3 = 42; // pin for Gas 3 [Tan]
+const int Gas4 = 46; // pin for Gas 4 [Tan]
 int pos = -1; // if you change pos, posB or pos3 here change it also at the begining of each swicht case so that the values always reset to the same numbers
 int posB = 1; //a full revolution is at 400 for forward stepper and 1600 for the rotational stepper
 int posho = 0;
@@ -96,16 +94,11 @@ char Confirm;  //TBD
 //delete this 
 int cycle=0; 
 
-// error variables
-long current_time;
-long update_time;
-
 // Stepper motors set up
 AccelStepper stepper(1, 2, 3); // pin 2 is connected to PUL- on stepping driver and pin 3 is connected to DIR-. [Tan]
 //Stepping driver controls the Forwards and backwards stepper motor.  (Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5)
 AccelStepper rotstepper(2, 5, 6); // pin 5 is connected to PUL- on stepping driver and pin 6 is connected to DIR-. [Tan]
 // the positive rotational direction is the forwards direction with the angular velocity vector facing away from the pneumotach .
-
 
 void setup()
 { //for physical setup just make sure to position the rotstepper at position 1 before starting the power
@@ -135,41 +128,23 @@ void setup()
   stepper.disableOutputs();//turns off the forwards and backwards stepper at start up so motor does not over heat because it if off as a default and is only turned off to move
   rotstepper.disableOutputs();
   digitalWrite(led, HIGH);
-  
 }
 
 //This section just includes a series of functions that move the stepper motors in specific ways
 
 // stepperForward2 moves the linear stepper motor away from the pneumotach.
 void stepperForward2() { /// add guard safe to make sure it does not move back if it is already touching the end stop// add abort command // fix homing code // add way for the machnine to detect that it is stuck and shuts off 
-  if (digitalRead(Fendstop)==HIGH && digitalRead(Bendstop)==HIGH){pos=0;}//if the machine is not on either end of thelinear motor limit, it sets pos to 0 so that the manchine moves slowly until it hits and endstop instead of slaming into the endstop
+  if (digitalRead(Fendstop)==HIGH && digitalRead(Bendstop)==HIGH){pos=0;}//if the mocahine is not on either end of thelinear motor limit, it sets pos to 0 so that the manchine moves slowly until it hits and endstop instead of slaming into the endstop
   stepper.enableOutputs(); 
   rotstepper.enableOutputs();
   digitalWrite(led, HIGH);
-  current_time = millis();
  if (digitalRead(Fendstop) != LOW){
  while (digitalRead(Fendstop) != LOW) {
     stepper.moveTo(pos);
     while (stepper.currentPosition() != pos) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
       stepper.run();
-      
     }
-    
     pos--; // moves linear motor in increments until the endstop is pressed.
-    update_time = millis();
-    if (update_time - current_time >= 5*1000){ // if 5 second timeout is triggered, display error
-      Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nINCOMPLETE\nTRANSLATION\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      Serial.println("RESTARTING IN...");
-        delay(1000);
-        Serial.println("3");
-        delay(1000);
-        Serial.println("2");
-        delay(1000);
-        Serial.println("1");
-        delay(1000);
-      stepperForward2();
-      return;
-    }
   }
  }
   if (digitalRead(Fendstop) == LOW) {
@@ -187,29 +162,12 @@ if (digitalRead(Fendstop)==HIGH && digitalRead(Bendstop)==HIGH){posB=0;}
  stepper.enableOutputs(); 
   digitalWrite(led, LOW);
  if(digitalRead(Bendstop) != LOW) {//first check if the motor is at the limit before moving to ensure it does not slam into the endstop and stall 
-  current_time = millis();
   while (digitalRead(Bendstop) != LOW) {
     stepper.moveTo(posB);
     while (stepper.currentPosition() != posB) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
       stepper.run();
-      
     }
-    
     posB++; // moves the linear motor in increments until endstop is pressed
-    update_time = millis();
-    if (update_time - current_time >= 5*1000){
-      Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nINCOMPLETE\nTRANSLATION\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-      Serial.println("RESTARTING IN...");
-        delay(1000);
-        Serial.println("3");
-        delay(1000);
-        Serial.println("2");
-        delay(1000);
-        Serial.println("1");
-        delay(1000);
-      stepperBackwards2();
-      return;
-    }
   }
  }
   if (digitalRead(Bendstop) == LOW) {
@@ -226,38 +184,20 @@ if (digitalRead(Fendstop)==HIGH && digitalRead(Bendstop)==HIGH){posB=0;}
 // these for functions move the rotational stepper motor, note they do not control the ves
 void rotstepperPosition1() {
   if (rotflag == true) {
-    current_time = millis();
     while (digitalRead(Rotendstop) != LOW) {
       rotstepper.moveTo(pos0);//A full revolution is 1600
       while (rotstepper.currentPosition() != pos0) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
         rotstepper.run();
-        
       }
-      
       pos0++;// moves the rotstepper in increments until the endstop is pressed
-      update_time = millis();
-      if (update_time - current_time >= 1000*20){
-        Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nINCOMPLETE\nROTATION\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        Serial.println("RESTARTING IN...");
-        delay(1000);
-        Serial.println("3");
-        delay(1000);
-        Serial.println("2");
-        delay(1000);
-        Serial.println("1");
-        delay(1000);
-        rotstepperPosition1();
-        return;
-      }
     }
     if (digitalRead (Rotendstop) == LOW) {
       rotstepper.setCurrentPosition(0);
+      Serial.println(rotstepper.currentPosition());
       rotstepper.moveTo (pos1);
       while (rotstepper.currentPosition() != pos1) {
         rotstepper.run();
-        
       }
-      
       rotstepper.stop();
       rotflag = false; // try this
       stopflag = false;
@@ -269,38 +209,19 @@ void rotstepperPosition1() {
 
 void rotstepperPosition2() {
   if (rotflag == true) {
-    current_time = millis();
     while (digitalRead(Rotendstop) != LOW) {
       rotstepper.moveTo(pos0);//A full revolution is 1600
       while (rotstepper.currentPosition() != pos0) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
         rotstepper.run();
-        
       }
-      
       pos0++;// moves the rotstepper in increments until the endstop is pressed
-      update_time = millis();
-      if (update_time - current_time >= 1000*20){
-        Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nINCOMPLETE\nROTATION\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        Serial.println("RESTARTING IN...");
-        delay(1000);
-        Serial.println("3");
-        delay(1000);
-        Serial.println("2");
-        delay(1000);
-        Serial.println("1");
-        delay(1000);
-        rotstepperPosition2();
-        return;
-      }
     }
     if (digitalRead (Rotendstop) == LOW) {
       rotstepper.setCurrentPosition(0);
       rotstepper.moveTo (pos2);
       while (rotstepper.currentPosition() != pos2) {
         rotstepper.run();
-        
       }
-      
       rotstepper.stop();
       rotflag = false; // try this
       stopflag = false;
@@ -313,38 +234,19 @@ void rotstepperPosition2() {
 void rotstepperPosition3()
 { 
   if (rotflag == true) {
-    current_time = millis();
     while (digitalRead(Rotendstop) != LOW) {
       rotstepper.moveTo(pos0);
       while (rotstepper.currentPosition() != pos0) {
         rotstepper.run();
-        
       }
-      
       pos0++;// moves the rotstepper in increments until the endstop is pressed
-      update_time = millis();
-      if (update_time - current_time >= 1000*20){
-        Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nINCOMPLETE\nROTATION\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        Serial.println("RESTARTING IN...");
-        delay(1000);
-        Serial.println("3");
-        delay(1000);
-        Serial.println("2");
-        delay(1000);
-        Serial.println("1");
-        delay(1000);
-        rotstepperPosition3();
-        return;
-      }
     }
     if (digitalRead (Rotendstop) == LOW) {
       rotstepper.setCurrentPosition(0);
       rotstepper.moveTo(pos3);
       while (rotstepper.currentPosition() != pos3) {
         rotstepper.run();
-        
       }
-      
       rotstepper.stop();
       rotflag = false; // try this
       stopflag = false;
@@ -357,39 +259,19 @@ void rotstepperPosition3()
 void rotstepperPosition4()
 { 
   if (rotflag == true) {
-    current_time = millis();
     while (digitalRead(Rotendstop) != LOW) {
       rotstepper.moveTo(pos0);//A full revolution is 1600
       while (rotstepper.currentPosition() != pos0) { // The while statements are important!! If they are removed the steppers will not go to the proper positions
         rotstepper.run();
-        
       }
-      
-        
       pos0++;// moves the rotstepper in increments until the endstop is pressed
-      update_time = millis();
-      if (update_time - current_time >= 1000*20){
-        Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nINCOMPLETE\nROTATION\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-        Serial.println("RESTARTING IN...");
-        delay(1000);
-        Serial.println("3");
-        delay(1000);
-        Serial.println("2");
-        delay(1000);
-        Serial.println("1");
-        delay(1000);
-        rotstepperPosition4();
-        return;
-      }
     }
     if (digitalRead(Rotendstop) == LOW) {
       rotstepper.setCurrentPosition(0);
       rotstepper.moveTo (pos4);
       while (rotstepper.currentPosition() != pos4) {
         rotstepper.run();
-        
       }
-      
       rotstepper.stop();
       rotflag = false; // try this, make them into booleans
       stopflag = false;
@@ -414,9 +296,7 @@ void blinking() {
       state = LOW;
     }
     digitalWrite(led, state);
-    while (millis() - prevt <= 1000) {
-      
-    };
+    while (millis() - prevt <= 1000) {};
     prev = mil;
   }
 }
@@ -435,48 +315,35 @@ void Calibrate(long Cals) {
   }
   if (CalsInt != 0 && CalsInt != -1) {
     Sec = 1000 * CalsInt;
-    String action_label = "Starting: Calibrating for ";
-    String calibration_time = String(Cals);
-    String time_unit = "s";
-    Serial.println(action_label + calibration_time + time_unit);
+    Serial.print("Starting: Calibrating for ");
+    Serial.print(Cals); Serial.println("s");
     digitalWrite(mot, HIGH);
     mmil = millis();
     mprev = mmil;
-    while (millis() - mprev <= Sec) {
-      
-    };// wait for given seconds
+    while (millis() - mprev <= Sec) {};// wait for given seconds
     digitalWrite(mot, LOW);
-    Serial.println("Finished: Calibrating");
+    Serial.print ("Finished: Calibrating");
   }
 }
 
 void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   // Note putting in a number greater than 4 for Valve could cause the program to crash since
-  String current_label = "Valve ";
-  String identify_valve = String(ValveInt);
-  String total_time = String(OpInt);
-  String time_unit = "s";
   //matrices are used here so a number greater then 4 will not be accepted aka nothing will happen
   SecValve = 1000 * OpInt;
   int valves[] = {Gas1, Gas2, Gas3, Gas4}; // sets up matrix with Gas pins, note the values are intergers
   //Turn off valve
   if (OpInt == 0 && ValveInt < 5 && ValveInt > 0) {
-    
     digitalWrite(valves[ValveInt - 1], LOW); // for ie. if Op=1, this lines turns off the pin number in
     //position 0 of the valves matrix which is Gas1 (Gas1 is an interger and stores the pin numbers)
-    String valve_off = " Off";
-    Serial.println(current_label + identify_valve + valve_off);
+    Serial.print("Ongoing: Valve "); Serial.println(ValveInt ); Serial.println ("Off");
   }
   //Turn on valve
   if (OpInt == -1 && ValveInt < 5 && ValveInt > 0) {
-    
     digitalWrite(valves[ValveInt - 1], HIGH);
-    String valve_on = " On";
-    Serial.println(current_label + identify_valve + valve_on);
+    Serial.println("Ongoing: Valve "); Serial.print(ValveInt); Serial.println (" On");
   }
   //Turn off all valves
   if (ValveInt == 0 && OpInt == 0) {
-    
     digitalWrite (Gas1, LOW);
     digitalWrite (Gas2, LOW);
     digitalWrite (Gas3, LOW);
@@ -486,35 +353,27 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   //Turn on valve for specified time
   else {
     if (ValveInt < 5 && ValveInt > 0 && OpInt != -1 && OpInt != 0) {
-      
-      String valve_start = "Starting: Valve ";
-      String specify_time = " on for ";
-      Serial.println(valve_start + identify_valve + specify_time + total_time + time_unit);
+      Serial.println("Starting: Valve "); Serial.print(ValveInt ); Serial.print (" on for "); Serial.print(OpInt);
+      Serial.println("s");
       digitalWrite(valves[ValveInt - 1], HIGH);
       milV = millis();
       prevV = milV;
       while (millis() - prevV <= SecValve) {};
       digitalWrite(valves[ValveInt - 1], LOW);
-      String valve_finish = "Finished: Valve ";
-      Serial.println(valve_finish + identify_valve + specify_time + total_time + time_unit);
+      Serial.println("Finished: Valve "); Serial.print(ValveInt ); Serial.print (" on for "); Serial.print(OpInt);
+      Serial.println("s");
     }
   }
 }
 
 void Pos(int PosiInt, long GasInt) { // Inputs are intergers
-  String prefill_label = "Prefill for ";
-  String prefill_time = String(GasInt);
-  String time_unit = "s";
-  String position_label = "Ongoing: On Position ";
-  String identify_position = String(PosiInt);
-  Serial.println(prefill_label + prefill_time + time_unit);
+  Serial.println(GasInt);
   int valves[] = {Gas1, Gas2, Gas3, Gas4};
   SecPosi = 1000 * GasInt;
+  Serial.println(SecPosi);
   //Go to posi and do not turn on the valve
   if (GasInt == 0 && PosiInt < 5 && PosiInt > 0) {
-    
-    String gas_off = ", Gas Off";
-    Serial.println(position_label + identify_position + gas_off);
+    Serial.println("Ongoing: On Position "); Serial.print(PosiInt); Serial.println(", Gas Off");
     digitalWrite(valves[PosiInt - 1], LOW); // turn off valve
     if (PosiInt == 1) {
       stepperForward2(); rotstepperPosition1(); stepperBackwards2();
@@ -531,10 +390,8 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   }
   // Go to Position and Turn on the Valve
   if (GasInt == -1 && PosiInt < 5 && PosiInt > 0) {
-    
     digitalWrite(valves[PosiInt - 1], HIGH); // turn on valve
-    String gas_on = ", Gas On";
-    Serial.println(position_label + identify_position + gas_on);
+    Serial.println("Ongoing: On Position "); Serial.print(PosiInt); Serial.println(", Gas On");
     if (PosiInt == 1) {
       stepperForward2(); rotstepperPosition1(); stepperBackwards2();
     }
@@ -551,9 +408,8 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   // Turn on gas for specified time first, then go to position and keep gas on
   else {
     if (PosiInt < 5 && PosiInt > 0 && GasInt != 0 && GasInt != -1) {
-      
-      String prefill_length = ", Prefilled for ";
-      Serial.println(position_label + identify_position + prefill_length + prefill_time + time_unit);
+      Serial.println("Ongoing: On Position "); Serial.print(PosiInt); Serial.print(", Prefilled for ");
+      Serial.print(GasInt); Serial.println("s");
       digitalWrite(valves[PosiInt - 1], HIGH);
       milP = millis();
       prevP = milP;
@@ -580,9 +436,9 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
         stepperForward2(); rotstepperPosition4(); stepperBackwards2();
         go = false;
       }
-      
-      String position_finish = "Finished: On Position ";
-      Serial.println(position_finish + identify_position + prefill_length + prefill_time + time_unit);
+
+      Serial.println("Finished: On Position "); Serial.print(PosiInt); Serial.print(", Prefilled for ");
+      Serial.print(GasInt); Serial.println("s");
     }
   }
 }
@@ -610,11 +466,11 @@ void Room() {
 }
 
 void Startup() {
-  String startup_check = "  Starting: Startup Check";
-  String instruction1 = " User input is required for startup, follow the instructions on the screen";
-  String instruction2 = " If any of the test fail, let the startup sequence finish, then shut down the device by inputing <D,0,0> and call a technician";
-  String instruction3 = " Align the pneumotach with the gas chamber, once it is aligned input '<E,0,0>' into the serial port";
-  Serial.println(startup_check + "\n" + instruction1 + "\n" + instruction2 + "\n" + instruction3);
+  Serial.print( " Starting: Startup Check");
+  Serial.println(" User input is required for startup, follow the instructions on the screen");
+  Serial.println(" If any of the test fail, let the startup sequence finish, then shut down the device by inputing <D,0,0> and call a technician");
+  Serial.println(" Align the pneumotach with the gas chamber, once it is aligned input '<E,0,0>' into the serial port");
+
 }
 
 void StartupPartB() {
@@ -645,8 +501,10 @@ void StartupPartB() {
     }
   }
   stepperBackwards2();
+  Serial.print("Rotational Stepper Motor Homed" );
   // rotate to all four positions and set the positions
-  Serial.println("Confirming that the rotational stepper motor is properly homed:\n Going to position 2");
+  Serial.print ("Confirming that the device is properly homed:");
+  Serial.println (" Going to position 2");
   stepperForward2(); rotstepperPosition2(); stepperBackwards2();
   Serial.println (" Going to position 3");
   stepperForward2(); rotstepperPosition3(); stepperBackwards2();
@@ -654,9 +512,10 @@ void StartupPartB() {
   stepperForward2(); rotstepperPosition4(); stepperBackwards2();
   Serial.println (" Going to position 1");
   stepperForward2(); rotstepperPosition1(); stepperBackwards2();
-  Serial.println("\nIf the device locked at any point, restart the homing sequence by inputing <U,0,0>" );
+  Serial.println("If the device locked at any point, restart the homing sequence by inputing <U,0,0>" );
   // Turn on and off all gas valves
-  Serial.println("Testing Valves: All valves will be turned on and off in order for 5 seconds each. If you do not hear the gas flowing when a valve is turned on, wait for the startup fo finish then input <D,0,0> to shut down the device and call a technician.\n\n Valve 1");
+  Serial.print ("Testing Valves: All valves will be turned on and off in order for 5 seconds each. If you do not hear the gas flowing when a valve is turned on, wait for the startup fo finish then input <D,0,0> to shut down the device and call a technician.");
+  Serial.println (" Valve 1");
   Valve(1, 5);
   Valve(1, 0);
   Serial.println (" Valve 2");
@@ -668,7 +527,8 @@ void StartupPartB() {
   Serial.println (" Valve 4");
   Valve(4, 5);
   Valve(4, 0);
-  Serial.println("\nIf any of the valves are irresponsive, DO NOT use this device, turn it off and call a technician\n Testing Calibrating Pipette");
+  Serial.println("If any of the valves are irresponsive, DO NOT use this device, turn it off and call a technician");
+  Serial.println(" Testing Calibrating Pipette");
   Calibrate (30);
   Serial.println(" Finished: Startup Check - All Components Functional");
   startupread = false;
@@ -699,7 +559,7 @@ void ABORT() {
 
 
 // This section contains all the functions for reading the serial port to call the functions above
-// note all inputs must be preceeded by '<' and ended by '>', see input guide.
+//note all inputs must be preceeded by '<' and ended by '>', see input guide.
 // Function to read data send from the serial port and store it in receivedChars
 void recvdata () {
   static boolean recvInProgress = false; // the static part allows this boolean to keep its value between functions
@@ -747,13 +607,12 @@ void parseData() { // split the data into its parts
 
 void showParsedData() {
 
-  String component_label = "Component ";
-  String identify_component = String(Component);
-  String number_label = "Number ";
-  String comp_num = String(ComponentNum);
-  String op_label = "Operation ";
-  String comp_op = String(ComponentOp);
-  Serial.println(component_label + identify_component + "\n" + number_label + comp_num + "\n" + op_label + comp_op);
+  Serial.print("Component ");
+  Serial.println(Component);
+  Serial.print("Number ");
+  Serial.println(ComponentNum);
+  Serial.print("Operation ");
+  Serial.println(ComponentOp);
 
 }
 

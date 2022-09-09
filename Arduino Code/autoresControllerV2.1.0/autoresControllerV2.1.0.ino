@@ -6,8 +6,6 @@
 // [2022-0131-Brandon] Slow down the rotational motor and adjust position 3 a few steps
 // [2022-0418-Brandon] Changed valve pins for new PCB
 
-//Note: To abort while running a function, write 'X' into the Serial monitor.
-
 // Debugging notes
 ///add guard safe to make sure it does not move back if it is already touching the end stop
 // add abort command
@@ -15,7 +13,6 @@
 // add way for the machnine to detect that it is stuck and shuts off
 
 #include <AccelStepper.h>// includes accelstepper library
-#include <Q2HX711.h> // includes library to interface with pressure sensor
 //Avoid 23-53 pins on arduino mega
 char prot;//character for protoype choice equal to proto but allows the proto value to remain constant throughout code
 char proto;//chracter for prototype
@@ -26,10 +23,6 @@ char act3 = '0';
 char act4 = '0';
 char action3;
 
-const byte MPS_OUT_pin = 8; // OUT data pin for the pressure sensor
-const byte MPS_SCK_pin = 9; // clock data pin for the pressure sensor
-
-const byte KILL_BTN_pin = 2; // 
 
 
 int val;// value for switch case
@@ -112,7 +105,6 @@ AccelStepper stepper(1, 2, 3); // pin 2 is connected to PUL- on stepping driver 
 //Stepping driver controls the Forwards and backwards stepper motor.  (Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5)
 AccelStepper rotstepper(2, 5, 6); // pin 5 is connected to PUL- on stepping driver and pin 6 is connected to DIR-. [Tan]
 // the positive rotational direction is the forwards direction with the angular velocity vector facing away from the pneumotach .
-Q2HX711 pressure_sensor(MPS_OUT_pin, MPS_SCK_pin);
 
 
 void setup()
@@ -143,8 +135,6 @@ void setup()
   stepper.disableOutputs();//turns off the forwards and backwards stepper at start up so motor does not over heat because it if off as a default and is only turned off to move
   rotstepper.disableOutputs();
   digitalWrite(led, HIGH);
-
-  attachInterrupt(digitalPinToInterrupt(KILL_BTN_pin),ABORT,CHANGE); // On kill button press, run the ABORT command
   
 }
 
@@ -689,20 +679,6 @@ void ShutDown () {//add command to shut off all valves and other electrical comp
   rotstepper.disableOutputs();
   digitalWrite(mot, LOW);
   Serial.println(" The device is ready for shutdown, you may now turn off the wiring box and the main power strip.");
-}
-
-//Adjust pressure_sensor variable and add function calls to valve control functions
-bool checkValveFlow(){
-  //This function checks if the valve is allowing air to flow
-  current_time = millis();
-  float measurement = (float) pressure_sensor.read();
-  while (measurement <= 0){ //Change 0 to adjusted calibrated threshold
-    update_time = millis();
-    if (update_time - current_time >= 1000*5){ //Adjust timeout duration
-      return false;
-    }
-  }
-  return true;
 }
 
 void ABORT() {

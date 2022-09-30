@@ -113,6 +113,7 @@ AccelStepper rotstepper(2, 5, 6); // pin 5 is connected to PUL- on stepping driv
 // the positive rotational direction is the forwards direction with the angular velocity vector facing away from the pneumotach .
 Q2HX711 pressure_sensor(MPS_OUT_pin, MPS_SCK_pin);
 
+void(* resetFunc) (void) = 0; 
 
 void setup()
 { //for physical setup just make sure to position the rotstepper at position 1 before starting the power
@@ -143,8 +144,13 @@ void setup()
   rotstepper.disableOutputs();
   digitalWrite(led, HIGH);
 
-  attachInterrupt(digitalPinToInterrupt(KILL_BTN_pin),ABORT,CHANGE); // On kill button press, run the ABORT command
+  attachInterrupt(digitalPinToInterrupt(KILL_BTN_pin),KILL,CHANGE); // On kill button press, run the ABORT command
   
+}
+
+void KILL(){
+  ABORT();
+  resetFunc();
 }
 
 //This section just includes a series of functions that move the stepper motors in specific ways
@@ -473,8 +479,25 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
     
     digitalWrite(valves[ValveInt - 1], LOW); // for ie. if Op=1, this lines turns off the pin number in
     //position 0 of the valves matrix which is Gas1 (Gas1 is an interger and stores the pin numbers)
+    
     String valve_off = " Off";
     Serial.println(current_label + identify_valve + valve_off);
+
+    if(checkValveFlow()){
+      ABORT();
+      Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nVALVE NOT\nOFF\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      Serial.println("RESTARTING IN...");
+      delay(1000);
+      Serial.println("3");
+      delay(1000);
+      Serial.println("2");
+      delay(1000);
+      Serial.println("1");
+      delay(1000);
+      Valve(ValveInt, OpInt);
+    }else{
+      Serial.println("SUCCESS:\nVALVE OFF");
+    }
   }
   //Turn on valve
   if (OpInt == -1 && ValveInt < 5 && ValveInt > 0) {
@@ -482,6 +505,22 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
     digitalWrite(valves[ValveInt - 1], HIGH);
     String valve_on = " On";
     Serial.println(current_label + identify_valve + valve_on);
+
+    if(!checkValveFlow()){
+      ABORT();
+      Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nVALVE NOT\nON\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      Serial.println("RESTARTING IN...");
+      delay(1000);
+      Serial.println("3");
+      delay(1000);
+      Serial.println("2");
+      delay(1000);
+      Serial.println("1");
+      delay(1000);
+      Valve(ValveInt, OpInt);
+    }else{
+      Serial.println("SUCCESS:\nVALVE ON");
+    }
   }
   //Turn off all valves
   if (ValveInt == 0 && OpInt == 0) {
@@ -500,10 +539,42 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
       String specify_time = " on for ";
       Serial.println(valve_start + identify_valve + specify_time + total_time + time_unit);
       digitalWrite(valves[ValveInt - 1], HIGH);
+
+      if(!checkValveFlow()){
+        ABORT();
+        Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nVALVE NOT\nON\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        Serial.println("RESTARTING IN...");
+        delay(1000);
+        Serial.println("3");
+        delay(1000);
+        Serial.println("2");
+        delay(1000);
+        Serial.println("1");
+        delay(1000);
+        Valve(ValveInt, OpInt);
+      }else{
+        Serial.println("SUCCESS:\nVALVE ON");
+      }
+
       milV = millis();
       prevV = milV;
       while (millis() - prevV <= SecValve) {};
       digitalWrite(valves[ValveInt - 1], LOW);
+      if(checkValveFlow()){
+        ABORT();
+        Serial.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nERROR:\nVALVE NOT\nOFF\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        Serial.println("RESTARTING IN...");
+        delay(1000);
+        Serial.println("3");
+        delay(1000);
+        Serial.println("2");
+        delay(1000);
+        Serial.println("1");
+        delay(1000);
+        Valve(ValveInt, OpInt);
+    }else{
+      Serial.println("SUCCESS:\nVALVE OFF");
+    }
       String valve_finish = "Finished: Valve ";
       Serial.println(valve_finish + identify_valve + specify_time + total_time + time_unit);
     }
@@ -511,6 +582,7 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
 }
 
 void Pos(int PosiInt, long GasInt) { // Inputs are intergers
+  int counter = 0;
   String prefill_label = "Prefill for ";
   String prefill_time = String(GasInt);
   String time_unit = "s";
@@ -523,6 +595,7 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   if (GasInt == 0 && PosiInt < 5 && PosiInt > 0) {
     
     String gas_off = ", Gas Off";
+
     Serial.println(position_label + identify_position + gas_off);
     digitalWrite(valves[PosiInt - 1], LOW); // turn off valve
     if (PosiInt == 1) {
@@ -691,9 +764,11 @@ void ShutDown () {//add command to shut off all valves and other electrical comp
 }
 
 //Adjust pressure_sensor variable and add function calls to valve control functions
+//Returns true if air flow is detected, false if not
 bool checkValveFlow(){
   //This function checks if the valve is allowing air to flow
   current_time = millis();
+  delay(500);
   float measurement = (float) pressure_sensor.read();
   while (measurement <= 700){ //Change 700 to adjusted calibrated threshold
     update_time = millis();
@@ -703,6 +778,8 @@ bool checkValveFlow(){
   }
   return true;
 }
+
+
 
 void ABORT() {
   // disable current to stepper motors

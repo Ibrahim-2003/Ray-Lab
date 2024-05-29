@@ -28,7 +28,7 @@ char action3;
 const byte MPS_OUT_pin = 8; // OUT data pin for the pressure sensor
 const byte MPS_SCK_pin = 9; // clock data pin for the pressure sensor
 
-const byte KILL_BTN_pin = 2; // 
+const int KILL_BTN_pin = 21; // 
 
 
 int val;// value for switch case
@@ -144,12 +144,16 @@ void setup()
   rotstepper.disableOutputs();
   digitalWrite(led, HIGH);
 
+  pinMode(KILL_BTN_pin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(KILL_BTN_pin),KILL,CHANGE); // On kill button press, run the ABORT command
   
 }
 
 void KILL(){
+  Serial.println("PRESSED");
+  delay(500);
   ABORT();
+  delay(1000);
   resetFunc();
 }
 
